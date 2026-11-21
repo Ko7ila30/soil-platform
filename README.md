@@ -1,3 +1,4 @@
+
 # Participative Soil Observation Platform
 ### Plateforme participative d'observation des sols — Chott Mariem, Sousse
 
@@ -5,6 +6,8 @@
 > are represented. Map tiles and Leaflet require an internet connection.
 
 ---
+
+<img width="5208" height="4922" alt="diagram" src="https://github.com/user-attachments/assets/317fb037-21ee-4534-a389-ba2dd7f61d07" />
 
 ## Architecture
 
