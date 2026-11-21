@@ -1,3 +1,4 @@
+
 # Participative Soil Observation Platform
 ### Plateforme participative d'observation des sols — Chott Mariem, Sousse
 
@@ -7,7 +8,7 @@
 ---
 
 ## Architecture
-
+<img width="5208" height="4922" alt="diagram" src="https://github.com/user-attachments/assets/317fb037-21ee-4534-a389-ba2dd7f61d07" />
 ```
 ┌─────────────────────────────────────────────────────────┐
 │  Browser                                                │
