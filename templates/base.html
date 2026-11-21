@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="{{ lang|default('en') }}" dir="{{ 'rtl' if (lang|default('en')) == 'ar' else 'ltr' }}">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}SoilWatch — Turlock, CA{% endblock %}</title>
+
+  <!-- Google Fonts: DM Serif Display + Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet" />
+
+  <!-- Design system -->
+  <link rel="stylesheet" href="/static/css/theme.css" />
+
+  {% block head %}{% endblock %}
+</head>
+<body>
+
+<!-- ================================================================
+     Navbar
+     ================================================================ -->
+<nav class="navbar" role="navigation" aria-label="Main navigation">
+  <div class="container">
+
+    <!-- Brand / logo mark -->
+    <a href="/" class="navbar-brand" aria-label="SoilWatch home">
+      <!-- SVG logo mark: stacked soil strata layers -->
+      <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"
+           aria-hidden="true" focusable="false">
+        <!-- Top layer: surface soil (silt colour) -->
+        <rect x="2" y="4"  width="24" height="6" rx="2" fill="#E8D5B0"/>
+        <!-- Mid layer: clay (warm brown) -->
+        <rect x="2" y="11" width="24" height="6" rx="2" fill="#C4956A"/>
+        <!-- Bottom layer: deep soil (dark) -->
+        <rect x="2" y="18" width="24" height="6" rx="2" fill="#8B5E3C"/>
+        <!-- Water line across the top -->
+        <line x1="2" y1="4" x2="26" y2="4" stroke="#3A7CA5" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      SoilWatch
+    </a>
+
+    <!-- Navigation links -->
+    <ul class="navbar-nav" role="list">
+      <li>
+        <a href="/"
+           class="{{ 'active' if request.path == '/' }}"
+           data-i18n="navHome">Accueil</a>
+      </li>
+      <li>
+        <a href="/carte"
+           class="{{ 'active' if request.path == '/carte' }}"
+           data-i18n="navMap">Carte</a>
+      </li>
+      <li>
+        <a href="/tables"
+           class="{{ 'active' if request.path == '/tables' }}"
+           data-i18n="navTables">Tables</a>
+      </li>
+    </ul>
+
+    <div class="navbar-spacer"></div>
+
+    <!-- User info (shown when logged in — phase 3) -->
+    {% if current_user %}
+      <span class="navbar-user" title="{{ current_user.email }}">
+        {{ current_user.email }}
+      </span>
+      <a href="/logout" class="btn btn-sm btn-secondary" data-i18n="navLogout">
+        Déconnexion
+      </a>
+    {% else %}
+      <a href="/login" class="btn btn-sm btn-ghost" data-i18n="navLogin">
+        Connexion
+      </a>
+    {% endif %}
+
+    <!-- Language switcher -->
+    <div class="lang-switcher" aria-label="Language">
+      <button class="btn-lang {% if lang == 'en' or not lang %}lang-active{% endif %}"
+              onclick="setLang('en')" aria-label="English">EN</button>
+      <button class="btn-lang {% if lang == 'fr' %}lang-active{% endif %}"
+              onclick="setLang('fr')" aria-label="Français">FR</button>
+      <button class="btn-lang {% if lang == 'ar' %}lang-active{% endif %}"
+              onclick="setLang('ar')" aria-label="العربية">AR</button>
+    </div>
+
+  </div>
+</nav>
+
+<!-- ================================================================
+     Page content
+     ================================================================ -->
+<main>
+  {% block content %}{% endblock %}
+</main>
+
+<!-- ================================================================
+     Footer
+     ================================================================ -->
+<footer class="footer" role="contentinfo">
+  <div class="container">
+    <span data-i18n="footerCopy">&copy; 2026 SoilWatch</span>
+    <span>·</span>
+    <span data-i18n="footerData">
+      Soil data: USDA SSURGO (real) · Observations: simulated
+    </span>
+    <span>·</span>
+    <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">
+      © OpenStreetMap contributors
+    </a>
+  </div>
+</footer>
+
+<!-- Toast container (shared across all pages) -->
+<div class="toast-container" id="toast-container" aria-live="polite"></div>
+
+<!-- ================================================================
+     Language switching (server-side: sets a cookie, reloads the page)
+     This is simpler than client-side JS swapping for multi-page apps.
+     The active language is read from the cookie in app.py and passed
+     to every template as `lang`.
+     ================================================================ -->
+<script>
+"use strict";
+function setLang(code) {
+  // Store in a cookie (1 year), then reload so the server renders the right lang
+  document.cookie = "lang=" + code + "; path=/; max-age=31536000; SameSite=Lax";
+  location.reload();
+}
+
+// Shared toast helper used by all pages
+function showToast(message, type, duration) {
+  if (!duration) { duration = 3000; }
+  var container = document.getElementById("toast-container");
+  var el = document.createElement("div");
+  el.className = "toast" + (type ? " toast-" + type : "");
+  el.textContent = message;
+  container.appendChild(el);
+  setTimeout(function() {
+    el.classList.add("toast-fade");
+    setTimeout(function() { container.removeChild(el); }, 300);
+  }, duration);
+}
+</script>
+
+{% block scripts %}{% endblock %}
+
+</body>
+</html>

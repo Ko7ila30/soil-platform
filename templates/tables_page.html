@@ -1,0 +1,545 @@
+{% extends "base.html" %}
+{% block title %}Tables — SoilWatch{% endblock %}
+
+{% block head %}
+<style>
+.tables-layout { padding: var(--sp-6) 0 var(--sp-10); }
+
+/* ---- Tabs ---- */
+.tab-bar {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid var(--border);
+  margin-bottom: var(--sp-6);
+}
+.tab-btn {
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  padding: 10px 22px;
+  font-family: var(--font-ui);
+  font-size: .9rem;
+  font-weight: 500;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color .15s, border-color .15s;
+}
+.tab-btn:hover { color: var(--soil-dark); }
+.tab-btn.active { color: var(--water); border-bottom-color: var(--water); }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ---- Toolbar above each table ---- */
+.table-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-4);
+  flex-wrap: wrap;
+}
+.table-toolbar input[type="search"] {
+  padding: .4rem .75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: var(--font-ui);
+  font-size: .875rem;
+  width: 220px;
+}
+.table-toolbar input:focus {
+  outline: none;
+  border-color: var(--water);
+  box-shadow: 0 0 0 3px rgba(58,124,165,.15);
+}
+.count-badge {
+  background: var(--silt);
+  color: var(--muted);
+  font-size: .78rem;
+  font-weight: 600;
+  padding: 2px 10px;
+  border-radius: 999px;
+  margin-left: auto;
+}
+
+/* ---- Pagination ---- */
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: var(--sp-4);
+  font-size: .875rem;
+}
+.pagination button {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: .3rem .75rem;
+  cursor: pointer;
+  font-size: .85rem;
+  color: var(--soil-dark);
+}
+.pagination button:disabled { opacity: .4; cursor: default; }
+.pagination button:hover:not(:disabled) { background: var(--silt); }
+.page-info { color: var(--muted); }
+
+/* ---- Table row actions ---- */
+.row-actions { display: flex; gap: 4px; white-space: nowrap; }
+.btn-row { font-size: .75rem; padding: 2px 8px; }
+
+/* ---- Inline edit row ---- */
+tr.editing td { background: var(--water-light); }
+tr.editing input, tr.editing select {
+  width: 100%;
+  padding: 2px 4px;
+  border: 1px solid var(--water);
+  border-radius: 3px;
+  font-family: var(--font-ui);
+  font-size: .84rem;
+}
+
+/* ---- Badge colours reused from theme ---- */
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="tables-layout">
+<div class="container">
+
+  <div style="display:flex; align-items:baseline; gap:var(--sp-4); margin-bottom:var(--sp-6);">
+    <h2>Data Tables</h2>
+    <a href="/carte" class="btn btn-sm btn-ghost">Open Map &rarr;</a>
+  </div>
+
+  <!-- Tab bar -->
+  <div class="tab-bar" role="tablist">
+    <button class="tab-btn active" id="tab-sites-btn"
+            role="tab" aria-selected="true"
+            onclick="switchTab('sites')">
+      Sites <span class="count-badge">{{ counts.sites }}</span>
+    </button>
+    <button class="tab-btn" id="tab-zones-btn"
+            role="tab" aria-selected="false"
+            onclick="switchTab('zones')">
+      Soil Units <span class="count-badge">{{ counts.zones }}</span>
+    </button>
+    <button class="tab-btn" id="tab-obs-btn"
+            role="tab" aria-selected="false"
+            onclick="switchTab('observations')">
+      Observations <span class="count-badge">{{ counts.observations }}</span>
+    </button>
+  </div>
+
+  <!-- ============================================================
+       Sites tab
+       ============================================================ -->
+  <div class="tab-panel active" id="tab-sites">
+    <div class="table-toolbar">
+      <input type="search" id="sites-search" placeholder="Search by name..."
+             oninput="debouncedLoad('sites')"/>
+      <button class="btn btn-sm btn-secondary" onclick="exportCSV('sites')">
+        &#8595; Export CSV
+      </button>
+    </div>
+    <div class="table-wrap">
+      <table id="sites-table">
+        <thead>
+          <tr>
+            <th>ID</th><th>Name</th><th>Crop</th><th>Soil type</th>
+            <th>Obs.</th><th>Lat</th><th>Lon</th><th>Status</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="sites-tbody">
+          <tr><td colspan="9" style="text-align:center;color:var(--muted);padding:2rem;">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="pagination" id="sites-pagination"></div>
+  </div>
+
+  <!-- ============================================================
+       Zones tab
+       ============================================================ -->
+  <div class="tab-panel" id="tab-zones">
+    <div class="table-toolbar">
+      <input type="search" id="zones-search" placeholder="Search by name..."
+             oninput="debouncedLoad('zones')"/>
+      <button class="btn btn-sm btn-secondary" onclick="exportCSV('zones')">
+        &#8595; Export CSV
+      </button>
+    </div>
+    <div class="table-wrap">
+      <table id="zones-table">
+        <thead>
+          <tr>
+            <th>ID</th><th>Name</th><th>Type</th><th>Symbol</th>
+            <th>mukey</th><th>Source</th><th>Description</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="zones-tbody">
+          <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:2rem;">Click the tab to load.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="pagination" id="zones-pagination"></div>
+  </div>
+
+  <!-- ============================================================
+       Observations tab
+       ============================================================ -->
+  <div class="tab-panel" id="tab-observations">
+    <div class="table-toolbar">
+      <input type="search" id="observations-search" placeholder="Search site or contributor..."
+             oninput="debouncedLoad('observations')"/>
+      <button class="btn btn-sm btn-secondary" onclick="exportCSV('observations')">
+        &#8595; Export CSV
+      </button>
+    </div>
+    <div class="table-wrap">
+      <table id="observations-table">
+        <thead>
+          <tr>
+            <th>ID</th><th>Site</th><th>Contributor</th><th>Date</th>
+            <th>Texture</th><th>Water</th><th>Salinity</th><th>Erosion</th>
+            <th>Crop</th><th>Irrigation</th><th>pH</th><th>EC</th><th>OM%</th>
+            <th>Remark</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="observations-tbody">
+          <tr><td colspan="15" style="text-align:center;color:var(--muted);padding:2rem;">Click the tab to load.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="pagination" id="observations-pagination"></div>
+  </div>
+
+</div><!-- .container -->
+</div><!-- .tables-layout -->
+
+<!-- Delete confirmation modal (reuses theme.css) -->
+<div id="del-modal" class="modal-overlay" hidden role="dialog" aria-modal="true">
+  <div class="modal-box" style="max-width:400px;">
+    <div class="modal-header">
+      <h2>Confirm deletion</h2>
+      <button class="btn-close-modal" onclick="$('del-modal').hidden=true">&#x2715;</button>
+    </div>
+    <p id="del-modal-msg" style="color:var(--muted);margin-bottom:16px;"></p>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-danger" id="del-confirm-btn">Delete</button>
+      <button class="btn btn-secondary" onclick="$('del-modal').hidden=true">Cancel</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+"use strict";
+
+function $(id) { return document.getElementById(id); }
+
+// Options from /api/options (for inline editing dropdowns)
+var OPT = {};
+fetch("/api/options").then(function(r){return r.json();}).then(function(d){ OPT = d; });
+
+// ---- Tab switching ---------------------------------------------------------
+var currentTab = "sites";
+var pageState  = { sites: 1, zones: 1, observations: 1 };
+
+function switchTab(tab) {
+  ["sites","zones","observations"].forEach(function(t) {
+    $(t === "sites" ? "tab-sites-btn" :
+      t === "zones" ? "tab-zones-btn" : "tab-obs-btn").classList.toggle("active", t === tab);
+    $("tab-" + t).classList.toggle("active", t === tab);
+  });
+  currentTab = tab;
+  loadTable(tab, pageState[tab]);
+}
+
+// ---- Debounce for search ---------------------------------------------------
+var debounceTimers = {};
+function debouncedLoad(tab) {
+  clearTimeout(debounceTimers[tab]);
+  debounceTimers[tab] = setTimeout(function() {
+    pageState[tab] = 1;
+    loadTable(tab, 1);
+  }, 350);
+}
+
+// ---- Load a table page from the API ----------------------------------------
+function loadTable(tab, page) {
+  var q   = $(tab + "-search") ? $(tab + "-search").value.trim() : "";
+  var url = "/api/table/" + tab + "?page=" + page + "&per_page=50"
+          + (q ? "&q=" + encodeURIComponent(q) : "");
+
+  fetch(url)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      pageState[tab] = data.page;
+      renderTable(tab, data);
+      renderPagination(tab, data);
+    })
+    .catch(function(err) {
+      console.error("Table load error:", err);
+      $(tab + "-tbody").innerHTML =
+        "<tr><td colspan='20' style='text-align:center;color:var(--danger);'>Failed to load data.</td></tr>";
+    });
+}
+
+// ---- Render helpers --------------------------------------------------------
+
+function esc(s) {
+  return String(s == null ? "" : s)
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+function td(val) {
+  return "<td>" + esc(val != null ? val : "") + "</td>";
+}
+
+function salBadge(v) {
+  var c = v === "absente" ? "badge-absente"
+        : v === "traces"  ? "badge-traces"
+        : "badge-crouts";
+  return "<td><span class='badge " + c + "'>" + esc(v) + "</span></td>";
+}
+
+function eroBadge(v) {
+  var c = v === "aucune"   ? "badge-aucune"
+        : v === "en nappe" ? "badge-en-nappe"
+        : "badge-rigoles";
+  return "<td><span class='badge " + c + "'>" + esc(v) + "</span></td>";
+}
+
+// ---- Render sites table ----------------------------------------------------
+function renderTable(tab, data) {
+  var tbody = $(tab + "-tbody");
+  if (!data.rows || data.rows.length === 0) {
+    tbody.innerHTML = "<tr><td colspan='20' style='text-align:center;color:var(--muted);padding:1.5rem;'>No records found.</td></tr>";
+    return;
+  }
+
+  if (tab === "sites") {
+    tbody.innerHTML = data.rows.map(function(r) {
+      return "<tr id='site-row-" + r.id + "'>"
+        + td(r.id) + td(r.name) + td(r.culture) + td(r.soil_type)
+        + td(r.obs_count) + td(r.lat ? (+r.lat).toFixed(5) : "") + td(r.lon ? (+r.lon).toFixed(5) : "")
+        + td(r.status)
+        + "<td><div class='row-actions'>"
+        + "<button class='btn btn-sm btn-secondary btn-row' onclick='editSiteRow(" + r.id + ")'>Edit</button>"
+        + "<button class='btn btn-sm btn-ghost btn-row' onclick='viewOnMap(\"site\"," + r.id + ")'>Map</button>"
+        + "<button class='btn btn-sm btn-danger btn-row' onclick='deleteRow(\"sites\"," + r.id + ",\"" + esc(r.name) + "\")'>&#x2715;</button>"
+        + "</div></td>"
+        + "</tr>";
+    }).join("");
+
+  } else if (tab === "zones") {
+    tbody.innerHTML = data.rows.map(function(r) {
+      return "<tr id='zone-row-" + r.id + "'>"
+        + td(r.id) + td(r.name) + td(r.zone_type) + td(r.musym)
+        + td(r.mukey) + td(r.source) + td(r.description)
+        + "<td><div class='row-actions'>"
+        + "<button class='btn btn-sm btn-secondary btn-row' onclick='editZoneRow(" + r.id + ")'>Edit</button>"
+        + "<button class='btn btn-sm btn-ghost btn-row' onclick='viewOnMap(\"zone\"," + r.id + ")'>Map</button>"
+        + "<button class='btn btn-sm btn-danger btn-row' onclick='deleteRow(\"zones\"," + r.id + ",\"" + esc(r.name) + "\")'>&#x2715;</button>"
+        + "</div></td>"
+        + "</tr>";
+    }).join("");
+
+  } else {
+    tbody.innerHTML = data.rows.map(function(r) {
+      return "<tr id='obs-row-" + r.id + "'>"
+        + td(r.id) + td(r.site_name) + td(r.contributor_name)
+        + td(r.observation_date) + td(r.soil_texture)
+        + td(r.water_status)
+        + salBadge(r.salinity)
+        + eroBadge(r.erosion)
+        + td(r.culture) + td(r.irrigation_mode)
+        + td(r.ph) + td(r.ec_dsm) + td(r.organic_matter_pct)
+        + td(r.remark)
+        + "<td><div class='row-actions'>"
+        + "<button class='btn btn-sm btn-danger btn-row' onclick='deleteRow(\"observations\"," + r.id + ",\"obs #" + r.id + "\")'>&#x2715;</button>"
+        + "</div></td>"
+        + "</tr>";
+    }).join("");
+  }
+}
+
+// ---- Pagination ------------------------------------------------------------
+function renderPagination(tab, data) {
+  var total_pages = Math.ceil(data.total / data.per_page);
+  var el = $(tab + "-pagination");
+  if (total_pages <= 1) { el.innerHTML = ""; return; }
+  el.innerHTML =
+    "<button " + (data.page <= 1 ? "disabled" : "") + " onclick='goPage(\"" + tab + "\"," + (data.page-1) + ")'>&larr;</button>"
+    + "<span class='page-info'>Page " + data.page + " / " + total_pages + " &nbsp;(" + data.total + " records)</span>"
+    + "<button " + (data.page >= total_pages ? "disabled" : "") + " onclick='goPage(\"" + tab + "\"," + (data.page+1) + ")'>&rarr;</button>";
+}
+
+function goPage(tab, page) {
+  pageState[tab] = page;
+  loadTable(tab, page);
+}
+
+// ---- Inline edit: sites ----------------------------------------------------
+function editSiteRow(id) {
+  var row = $("site-row-" + id);
+  if (!row) { return; }
+  var cells = row.querySelectorAll("td");
+  var name      = cells[1].textContent.trim();
+  var culture   = cells[2].textContent.trim();
+  var soilType  = cells[3].textContent.trim();
+
+  function mkSel(val, opts) {
+    return "<select>" + opts.map(function(o) {
+      return "<option value='" + esc(o) + "'" + (o===val?" selected":"") + ">" + esc(o) + "</option>";
+    }).join("") + "</select>";
+  }
+
+  cells[1].innerHTML = "<input type='text' value='" + esc(name) + "' maxlength='100'/>";
+  cells[2].innerHTML = mkSel(culture,  OPT.cultures  || []);
+  cells[3].innerHTML = mkSel(soilType, OPT.soilTypes || []);
+  cells[8].innerHTML = "<div class='row-actions'>"
+    + "<button class='btn btn-sm btn-primary btn-row' onclick='saveSiteRow(" + id + ")'>Save</button>"
+    + "<button class='btn btn-sm btn-secondary btn-row' onclick='loadTable(\"sites\"," + pageState.sites + ")'>Cancel</button>"
+    + "</div>";
+  row.classList.add("editing");
+}
+
+function saveSiteRow(id) {
+  var row = $("site-row-" + id);
+  var cells = row.querySelectorAll("td");
+  var payload = {
+    name:      cells[1].querySelector("input").value.trim(),
+    culture:   cells[2].querySelector("select").value,
+    soil_type: cells[3].querySelector("select").value,
+  };
+  fetch("/api/sites/" + id, {
+    method: "PUT",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify(payload)
+  })
+  .then(function(r){return r.json().then(function(d){return{s:r.status,d:d};});})
+  .then(function(res){
+    if (res.s === 200) {
+      showToast("Site updated.", "success");
+      loadTable("sites", pageState.sites);
+    } else {
+      showToast((res.d.errors ? Object.values(res.d.errors)[0] : res.d.error) || "Save failed.", "error");
+    }
+  }).catch(function(){ showToast("Server unreachable.", "error"); });
+}
+
+// ---- Inline edit: zones ----------------------------------------------------
+function editZoneRow(id) {
+  var row = $("zone-row-" + id);
+  if (!row) { return; }
+  var cells = row.querySelectorAll("td");
+  var name     = cells[1].textContent.trim();
+  var zoneType = cells[2].textContent.trim();
+  var desc     = cells[6].textContent.trim();
+
+  cells[1].innerHTML = "<input type='text' value='" + esc(name) + "' maxlength='100'/>";
+  cells[2].innerHTML = "<input type='text' value='" + esc(zoneType) + "' maxlength='80'/>";
+  cells[6].innerHTML = "<input type='text' value='" + esc(desc) + "' maxlength='400'/>";
+  cells[7].innerHTML = "<div class='row-actions'>"
+    + "<button class='btn btn-sm btn-primary btn-row' onclick='saveZoneRow(" + id + ")'>Save</button>"
+    + "<button class='btn btn-sm btn-secondary btn-row' onclick='loadTable(\"zones\"," + pageState.zones + ")'>Cancel</button>"
+    + "</div>";
+  row.classList.add("editing");
+}
+
+function saveZoneRow(id) {
+  var row = $("zone-row-" + id);
+  var cells = row.querySelectorAll("td");
+  var payload = {
+    name:        cells[1].querySelector("input").value.trim(),
+    zone_type:   cells[2].querySelector("input").value.trim(),
+    description: cells[6].querySelector("input").value.trim(),
+  };
+  fetch("/api/zones/" + id, {
+    method: "PUT",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify(payload)
+  })
+  .then(function(r){return r.json().then(function(d){return{s:r.status,d:d};});})
+  .then(function(res){
+    if (res.s === 200) {
+      showToast("Zone updated.", "success");
+      loadTable("zones", pageState.zones);
+    } else {
+      showToast((res.d.errors ? Object.values(res.d.errors)[0] : res.d.error) || "Save failed.", "error");
+    }
+  }).catch(function(){ showToast("Server unreachable.", "error"); });
+}
+
+// ---- Delete ----------------------------------------------------------------
+var deleteTarget = null;
+
+function deleteRow(type, id, label) {
+  deleteTarget = { type: type, id: id };
+  var typeLabel = type === "observations" ? "observation" : type.slice(0,-1);
+  $("del-modal-msg").textContent = 'Delete ' + typeLabel + ' "' + label + '"?'
+    + (type === "sites" ? " All linked observations will also be deleted." : "");
+  $("del-modal").hidden = false;
+}
+
+$("del-confirm-btn").onclick = function() {
+  if (!deleteTarget) { return; }
+  var url = "/api/" + deleteTarget.type + "/" + deleteTarget.id;
+  // observations uses a different endpoint
+  if (deleteTarget.type === "observations") {
+    url = "/api/observations/" + deleteTarget.id;
+  }
+  fetch(url, { method: "DELETE" })
+  .then(function(r){return r.json().then(function(d){return{s:r.status,d:d};});})
+  .then(function(res){
+    $("del-modal").hidden = true;
+    if (res.s === 200) {
+      showToast("Deleted.", "success");
+      loadTable(deleteTarget.type === "observations" ? "observations"
+                : deleteTarget.type, pageState[deleteTarget.type] || 1);
+    } else {
+      showToast(res.d.error || "Delete failed.", "error");
+    }
+  }).catch(function(){ showToast("Server unreachable.", "error"); });
+};
+
+// ---- View on map -----------------------------------------------------------
+function viewOnMap(type, id) {
+  window.open("/carte?" + type + "=" + id, "_blank");
+}
+
+// ---- CSV export ------------------------------------------------------------
+function exportCSV(tab) {
+  var q = $(tab + "-search") ? $(tab + "-search").value.trim() : "";
+  // Fetch all rows (large per_page) then convert to CSV
+  fetch("/api/table/" + tab + "?page=1&per_page=5000" + (q ? "&q="+encodeURIComponent(q) : ""))
+    .then(function(r){return r.json();})
+    .then(function(data){
+      if (!data.rows || data.rows.length === 0) {
+        showToast("No data to export.", "");
+        return;
+      }
+      var cols = Object.keys(data.rows[0]);
+      var csv  = cols.join(",") + "\n"
+               + data.rows.map(function(row){
+                   return cols.map(function(c){
+                     var v = row[c] == null ? "" : String(row[c]);
+                     return '"' + v.replace(/"/g,'""') + '"';
+                   }).join(",");
+                 }).join("\n");
+      var blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      var url  = URL.createObjectURL(blob);
+      var a    = document.createElement("a");
+      a.href = url; a.download = tab + ".csv";
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+}
+
+// ---- Initial load ----------------------------------------------------------
+loadTable("sites", 1);
+</script>
+{% endblock %}

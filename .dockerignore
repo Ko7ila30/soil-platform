@@ -1,0 +1,9 @@
+# Never bake credentials or the venv into the Docker image
+.env
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+data/sites.geojson
+.git/

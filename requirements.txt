@@ -1,0 +1,18 @@
+# Requirements for the Soil Observation Platform Flask application.
+# Python 3.15.2 64-bit (C:\Users\adame\AppData\Local\Programs\Python\Python315\python.exe)
+#
+# Install inside the venv:
+#   .venv\Scripts\pip install -r requirements.txt
+#
+# Version selection rationale:
+#   Flask 3.x — latest stable, Python 3.15 compatible, no breaking changes for our usage.
+#   psycopg2-binary — binary wheel (no libpq build needed); "binary" suffix is correct
+#       for development. The cp315 win_amd64 wheel is available on PyPI.
+#   python-dotenv — reads .env file; pure Python, no wheel issues.
+
+Flask==3.1.0
+psycopg2-binary==2.9.13
+python-dotenv==1.0.1
+
+# Test dependencies (also install these in the venv for running tests)
+pytest==8.3.4

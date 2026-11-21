@@ -1,0 +1,22 @@
+# Credentials — never commit the real .env
+.env
+
+# Virtual environment
+.venv/
+
+# Python caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Generated export (re-created by export_geojson.py)
+data/sites.geojson
+
+# OS artefacts
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+*.swp

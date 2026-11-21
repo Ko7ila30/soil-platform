@@ -1,0 +1,618 @@
+/* ==========================================================================
+   theme.css — Design system for the Soil Observation Platform
+   Direction A: "Soil Strata"
+   Fonts: DM Serif Display (headings) + Inter (body/UI) from Google Fonts
+   ========================================================================== */
+
+/* Google Fonts import */
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600&display=swap');
+
+/* --------------------------------------------------------------------------
+   1. Design tokens (CSS custom properties)
+   -------------------------------------------------------------------------- */
+:root {
+  /* Palette — soil strata */
+  --soil-dark:   #2C1A0E;   /* deep topsoil — text, navbar bg */
+  --soil-mid:    #8B5E3C;   /* subsoil — accents, hover states */
+  --clay:        #C4956A;   /* clay layer — warm mid-tone, borders */
+  --silt:        #E8D5B0;   /* silt — card backgrounds, subtle fills */
+  --water:       #3A7CA5;   /* irrigation water — primary CTA, links */
+  --water-dark:  #2B5F80;   /* darker water — button hover */
+  --water-light: #EBF4FA;   /* very light water — info backgrounds */
+  --surface:     #F5F0E8;   /* surface — page background */
+  --white:       #FFFFFF;
+  --ink:         #1A1A1A;   /* near-black body text */
+  --muted:       #6B5B4E;   /* muted text, placeholders */
+  --border:      #D4B896;   /* input borders, dividers */
+  --danger:      #C0392B;   /* errors, destructive actions */
+  --danger-bg:   #FDECEA;
+  --success:     #2E7D32;   /* success states */
+  --success-bg:  #E8F5E9;
+  --warning:     #B7791F;   /* warning states */
+  --warning-bg:  #FEFCE8;
+
+  /* Badge colours — soil observation semantics */
+  /* Salinity */
+  --badge-green-bg:  #E8F5E9;  --badge-green-text:  #2E7D32;  /* absente / aucune */
+  --badge-amber-bg:  #FEFCE8;  --badge-amber-text:  #B7791F;  /* traces / en nappe */
+  --badge-red-bg:    #FDECEA;  --badge-red-text:    #C0392B;  /* croûtes / rigoles / ravines */
+  --badge-blue-bg:   #EBF4FA;  --badge-blue-text:   #2B5F80;  /* water status / irrigation */
+
+  /* Typography */
+  --font-display: 'DM Serif Display', Georgia, serif;
+  --font-ui:      'Inter', system-ui, sans-serif;
+
+  /* Spacing scale (multiples of 4px) */
+  --sp-1:  4px;   --sp-2:  8px;   --sp-3: 12px;
+  --sp-4: 16px;   --sp-5: 20px;   --sp-6: 24px;
+  --sp-8: 32px;   --sp-10: 40px;  --sp-12: 48px;
+  --sp-16: 64px;
+
+  /* Radius */
+  --radius-sm: 4px;
+  --radius:    8px;
+  --radius-lg: 12px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(44,26,14,.10);
+  --shadow:    0 2px 8px rgba(44,26,14,.12);
+  --shadow-lg: 0 4px 20px rgba(44,26,14,.16);
+
+  /* Transitions */
+  --transition: 150ms ease;
+}
+
+/* --------------------------------------------------------------------------
+   2. Reset and base
+   -------------------------------------------------------------------------- */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { font-size: 16px; scroll-behavior: smooth; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { transition-duration: 0ms !important; animation-duration: 0ms !important; }
+}
+
+body {
+  font-family: var(--font-ui);
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--ink);
+  background: var(--surface);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 400;   /* DM Serif Display has built-in weight */
+  line-height: 1.2;
+  color: var(--soil-dark);
+}
+
+h1 { font-size: 2.5rem; }
+h2 { font-size: 1.9rem; }
+h3 { font-size: 1.4rem; }
+h4 { font-size: 1.1rem; }
+
+a { color: var(--water); text-decoration: none; }
+a:hover { color: var(--water-dark); text-decoration: underline; }
+a:focus-visible { outline: 3px solid var(--water); outline-offset: 2px; border-radius: 2px; }
+
+p { margin-bottom: var(--sp-4); }
+p:last-child { margin-bottom: 0; }
+
+/* --------------------------------------------------------------------------
+   3. Layout helpers
+   -------------------------------------------------------------------------- */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--sp-6);
+}
+
+.page-content {
+  flex: 1;
+  padding: var(--sp-10) 0;
+}
+
+/* --------------------------------------------------------------------------
+   4. Navbar
+   -------------------------------------------------------------------------- */
+.navbar {
+  background: var(--soil-dark);
+  color: var(--white);
+  height: 56px;
+  display: flex;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  box-shadow: var(--shadow);
+}
+
+.navbar .container {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-6);
+  width: 100%;
+}
+
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  color: var(--white);
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  letter-spacing: .01em;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.navbar-brand:hover { color: var(--silt); text-decoration: none; }
+
+.navbar-brand svg {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+}
+
+.navbar-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  list-style: none;
+  margin: 0;
+}
+
+.navbar-nav a {
+  color: rgba(255,255,255,.75);
+  font-size: .9rem;
+  font-weight: 500;
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--radius-sm);
+  transition: color var(--transition), background var(--transition);
+  text-decoration: none;
+}
+
+.navbar-nav a:hover,
+.navbar-nav a.active {
+  color: var(--white);
+  background: rgba(255,255,255,.12);
+  text-decoration: none;
+}
+
+.navbar-nav a:focus-visible {
+  outline: 2px solid var(--clay);
+  outline-offset: 2px;
+}
+
+.navbar-spacer { flex: 1; }
+
+/* Language switcher in navbar */
+.lang-switcher {
+  display: flex;
+  gap: 2px;
+  background: rgba(0,0,0,.25);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+}
+
+.btn-lang {
+  background: transparent;
+  border: none;
+  color: rgba(255,255,255,.65);
+  font-family: var(--font-ui);
+  font-size: .75rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+  letter-spacing: .04em;
+}
+
+.btn-lang:hover { color: var(--white); background: rgba(255,255,255,.12); }
+
+.btn-lang.lang-active {
+  background: var(--clay);
+  color: var(--soil-dark);
+}
+
+/* User email chip */
+.navbar-user {
+  font-size: .8rem;
+  color: rgba(255,255,255,.6);
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --------------------------------------------------------------------------
+   5. Footer
+   -------------------------------------------------------------------------- */
+.footer {
+  background: var(--soil-dark);
+  color: rgba(255,255,255,.55);
+  font-size: .8rem;
+  padding: var(--sp-6) 0;
+  /* Strata stripe — three thin horizontal bands suggesting a soil profile */
+  border-top: 3px solid var(--soil-mid);
+  position: relative;
+}
+
+.footer::before {
+  content: '';
+  display: block;
+  height: 3px;
+  background: linear-gradient(90deg, var(--clay) 0%, var(--silt) 50%, var(--clay) 100%);
+  position: absolute;
+  top: -6px;
+  left: 0; right: 0;
+}
+
+.footer .container {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-6);
+  flex-wrap: wrap;
+}
+
+.footer a { color: rgba(255,255,255,.55); }
+.footer a:hover { color: var(--silt); }
+
+/* --------------------------------------------------------------------------
+   6. Buttons
+   -------------------------------------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-family: var(--font-ui);
+  font-size: .9rem;
+  font-weight: 500;
+  padding: .5rem 1.1rem;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background var(--transition), box-shadow var(--transition), opacity var(--transition);
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+.btn:focus-visible { outline: 3px solid var(--water); outline-offset: 2px; }
+.btn:disabled { opacity: .5; cursor: not-allowed; pointer-events: none; }
+
+/* Primary — water blue */
+.btn-primary {
+  background: var(--water);
+  color: var(--white);
+}
+.btn-primary:hover { background: var(--water-dark); color: var(--white); text-decoration: none; }
+
+/* Secondary — silt/clay */
+.btn-secondary {
+  background: var(--silt);
+  color: var(--soil-dark);
+  border: 1px solid var(--border);
+}
+.btn-secondary:hover { background: var(--border); color: var(--soil-dark); text-decoration: none; }
+
+/* Danger */
+.btn-danger {
+  background: var(--danger);
+  color: var(--white);
+}
+.btn-danger:hover { background: #a93226; color: var(--white); text-decoration: none; }
+
+/* Ghost */
+.btn-ghost {
+  background: transparent;
+  color: var(--water);
+  border: 1px solid var(--water);
+}
+.btn-ghost:hover { background: var(--water-light); text-decoration: none; }
+
+/* Sizes */
+.btn-sm { font-size: .8rem; padding: .3rem .75rem; }
+.btn-lg { font-size: 1rem;  padding: .7rem 1.5rem; }
+
+/* --------------------------------------------------------------------------
+   7. Forms
+   -------------------------------------------------------------------------- */
+.form-group { margin-bottom: var(--sp-5); }
+
+.form-group label {
+  display: block;
+  font-size: .875rem;
+  font-weight: 500;
+  color: var(--soil-dark);
+  margin-bottom: var(--sp-2);
+}
+
+.required { color: var(--danger); margin-left: 2px; }
+
+.form-control {
+  width: 100%;
+  font-family: var(--font-ui);
+  font-size: .9rem;
+  color: var(--ink);
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: .45rem .75rem;
+  transition: border-color var(--transition), box-shadow var(--transition);
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: var(--water);
+  box-shadow: 0 0 0 3px rgba(58,124,165,.18);
+}
+
+.form-control.invalid { border-color: var(--danger); }
+.form-control.invalid:focus { box-shadow: 0 0 0 3px rgba(192,57,43,.15); }
+
+textarea.form-control { resize: vertical; min-height: 80px; }
+
+.field-error {
+  display: block;
+  font-size: .8rem;
+  color: var(--danger);
+  margin-top: var(--sp-1);
+  min-height: 1.1em;
+}
+
+.form-hint {
+  font-size: .78rem;
+  color: var(--muted);
+  margin-top: var(--sp-1);
+}
+
+/* Inline form row */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-4);
+}
+
+@media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
+
+/* --------------------------------------------------------------------------
+   8. Cards
+   -------------------------------------------------------------------------- */
+.card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.card-header {
+  padding: var(--sp-4) var(--sp-6);
+  border-bottom: 1px solid var(--silt);
+  background: var(--silt);
+}
+
+.card-body { padding: var(--sp-6); }
+
+.card-footer {
+  padding: var(--sp-4) var(--sp-6);
+  border-top: 1px solid var(--silt);
+  background: var(--surface);
+  font-size: .85rem;
+  color: var(--muted);
+}
+
+/* Stat card — used on home page */
+.stat-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--sp-6);
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+}
+
+.stat-card .stat-number {
+  font-family: 'DM Serif Display', serif;
+  font-size: 2.4rem;
+  color: var(--water);
+  line-height: 1;
+  display: block;
+  /* monospaced feel for numbers */
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-card .stat-label {
+  font-size: .85rem;
+  color: var(--muted);
+  margin-top: var(--sp-2);
+  display: block;
+}
+
+/* --------------------------------------------------------------------------
+   9. Badges — soil observation semantics
+   Each badge value is set by a class; JS/Jinja adds the right class.
+   -------------------------------------------------------------------------- */
+.badge {
+  display: inline-block;
+  font-size: .75rem;
+  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+  letter-spacing: .02em;
+}
+
+/* Salinity */
+.badge-absente, .badge-aucune   { background: var(--badge-green-bg); color: var(--badge-green-text); }
+.badge-traces, .badge-en-nappe  { background: var(--badge-amber-bg); color: var(--badge-amber-text); }
+.badge-crouts, .badge-rigoles,
+.badge-ravines                  { background: var(--badge-red-bg);   color: var(--badge-red-text); }
+/* Water status and irrigation — blue family */
+.badge-water, .badge-irrigation { background: var(--badge-blue-bg);  color: var(--badge-blue-text); }
+
+/* --------------------------------------------------------------------------
+   10. Tables
+   -------------------------------------------------------------------------- */
+.table-wrap { overflow-x: auto; border-radius: var(--radius-lg); border: 1px solid var(--border); }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .875rem;
+  background: var(--white);
+}
+
+thead th {
+  background: var(--silt);
+  color: var(--soil-dark);
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: .8rem;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  padding: var(--sp-3) var(--sp-4);
+  border-bottom: 2px solid var(--border);
+  text-align: left;
+  white-space: nowrap;
+}
+
+tbody tr { border-bottom: 1px solid var(--silt); transition: background var(--transition); }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: var(--surface); }
+
+td { padding: var(--sp-3) var(--sp-4); vertical-align: middle; }
+
+/* --------------------------------------------------------------------------
+   11. Toast notifications
+   -------------------------------------------------------------------------- */
+.toast-container {
+  position: fixed;
+  bottom: var(--sp-6);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  align-items: center;
+  pointer-events: none;
+}
+
+.toast {
+  background: var(--soil-dark);
+  color: var(--white);
+  padding: .6rem 1.4rem;
+  border-radius: var(--radius);
+  font-size: .9rem;
+  font-weight: 500;
+  box-shadow: var(--shadow-lg);
+  pointer-events: auto;
+  transition: opacity .3s ease, transform .3s ease;
+  max-width: 400px;
+  text-align: center;
+}
+
+.toast.toast-success { background: var(--success); }
+.toast.toast-error   { background: var(--danger); }
+.toast.toast-fade    { opacity: 0; transform: translateY(8px); }
+
+/* --------------------------------------------------------------------------
+   12. Modal
+   -------------------------------------------------------------------------- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(44,26,14,.5);
+  z-index: 2000;
+  align-items: center;
+  justify-content: center;
+  display: none;
+}
+
+.modal-overlay:not([hidden]) { display: flex; }
+
+.modal-box {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  width: min(560px, 95vw);
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: var(--sp-6) var(--sp-8);
+  box-shadow: var(--shadow-lg);
+  position: relative;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--sp-6);
+  padding-bottom: var(--sp-4);
+  border-bottom: 1px solid var(--silt);
+}
+
+.modal-header h2 { font-size: 1.3rem; color: var(--soil-dark); }
+
+.btn-close-modal {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+  color: var(--muted);
+  padding: var(--sp-1) var(--sp-2);
+  border-radius: var(--radius-sm);
+  line-height: 1;
+  transition: color var(--transition);
+}
+.btn-close-modal:hover { color: var(--ink); }
+
+/* --------------------------------------------------------------------------
+   13. Alert / inline messages
+   -------------------------------------------------------------------------- */
+.alert {
+  padding: var(--sp-4) var(--sp-5);
+  border-radius: var(--radius);
+  font-size: .9rem;
+  margin-bottom: var(--sp-4);
+  border-left: 4px solid;
+}
+
+.alert-error   { background: var(--danger-bg);  color: var(--danger);  border-color: var(--danger); }
+.alert-success { background: var(--success-bg); color: var(--success); border-color: var(--success); }
+.alert-info    { background: var(--water-light); color: var(--water-dark); border-color: var(--water); }
+
+/* --------------------------------------------------------------------------
+   14. Responsive utilities
+   -------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+  h1 { font-size: 1.9rem; }
+  h2 { font-size: 1.5rem; }
+  .navbar-nav { gap: 0; }
+  .navbar-user { display: none; }
+  .container { padding: 0 var(--sp-4); }
+}
+
+/* --------------------------------------------------------------------------
+   15. RTL support (Arabic)
+   -------------------------------------------------------------------------- */
+[dir="rtl"] .navbar .container { flex-direction: row-reverse; }
+[dir="rtl"] .navbar-nav { flex-direction: row-reverse; }
+[dir="rtl"] .footer .container { flex-direction: row-reverse; }
+[dir="rtl"] .modal-header { flex-direction: row-reverse; }
+[dir="rtl"] .alert { border-left: none; border-right: 4px solid; }
+[dir="rtl"] .form-group label { text-align: right; }
+
+[lang="ar"] body, [lang="ar"] .btn, [lang="ar"] .form-control {
+  font-family: "Segoe UI", Tahoma, "Arial Unicode MS", Arial, sans-serif;
+}

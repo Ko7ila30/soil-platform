@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Soil Observation Platform -- Chott Mariem</title>
+
+  <!-- Leaflet 1.9.4 from cdnjs (more stable SRI than unpkg) -->
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"
+        crossorigin="anonymous" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"
+          crossorigin="anonymous"></script>
+
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+
+<!-- CONFIG injected by Flask -- never hard-code map settings in JS -->
+<script>
+  const CONFIG = {{ config_json|safe }};
+</script>
+
+<!-- translations.js must load before map.js and forms.js -->
+<script src="/static/js/translations.js"></script>
+
+<!-- ================================================================
+     Header
+     ================================================================ -->
+<header class="app-header">
+  <span class="app-title" data-i18n="appTitle">
+    Soil Observation -- Chott Mariem Perimeter
+  </span>
+
+  <div class="header-buttons">
+
+    <!-- Language switcher -->
+    <div class="lang-switcher" aria-label="Language">
+      <button id="btn-lang-en" class="btn-lang lang-active" onclick="applyLanguage('en')">EN</button>
+      <button id="btn-lang-fr" class="btn-lang" onclick="applyLanguage('fr')">FR</button>
+      <button id="btn-lang-ar" class="btn-lang" onclick="applyLanguage('ar')">AR</button>
+    </div>
+
+    <!-- Add-site button -->
+    <button id="btn-add-site" class="btn btn-primary"
+            data-i18n="addSite"
+            data-i18n-title="addSite">
+      + Add Site
+    </button>
+  </div>
+</header>
+
+<div class="app-body">
+
+  <!-- ============================================================
+       Sidebar
+       ============================================================ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-search">
+      <input type="text"
+             id="site-search"
+             data-i18n-placeholder="searchPlaceholder"
+             placeholder="Search a site..."
+             aria-label="Search a site" />
+    </div>
+
+    <div id="loading-indicator" class="loading-msg" data-i18n="loading">
+      Loading sites...
+    </div>
+
+    <div id="api-error" class="error-msg" hidden data-i18n="apiError">
+      Could not load sites. Make sure Flask and Docker are running.
+    </div>
+
+    <ul id="site-list" class="site-list" aria-label="Site list"></ul>
+  </aside>
+
+  <!-- ============================================================
+       Map
+       ============================================================ -->
+  <main id="map" aria-label="Observation sites map"></main>
+
+</div><!-- .app-body -->
+
+<!-- ================================================================
+     Add-site hint banner
+     ================================================================ -->
+<div id="add-site-banner" class="add-site-banner" hidden>
+  <span data-i18n="addSiteBanner">
+    Click on the map to place a new observation site.
+  </span>
+  <button id="btn-cancel-add" class="btn btn-secondary btn-sm"
+          data-i18n="cancel">Cancel</button>
+</div>
+
+<!-- ================================================================
+     Observation form modal
+     ================================================================ -->
+<div id="obs-modal" class="modal-overlay" hidden
+     role="dialog" aria-modal="true" aria-labelledby="obs-modal-title">
+  <div class="modal-box">
+
+    <div class="modal-header">
+      <h2 id="obs-modal-title" data-i18n="obsModalTitle">Add an Observation</h2>
+      <button id="btn-close-obs-modal" class="btn-close" aria-label="Close">&#x2715;</button>
+    </div>
+
+    <form id="obs-form" novalidate>
+
+      <!-- Site -->
+      <div class="form-group">
+        <label for="obs-site-id">
+          <span data-i18n="site">Site</span>
+          <span class="required">*</span>
+        </label>
+        <select id="obs-site-id" name="site_id" required>
+          <option value="" data-i18n="chooseSite">-- Choose a site --</option>
+        </select>
+        <span class="field-error" id="err-site_id"></span>
+      </div>
+
+      <!-- Contributor -->
+      <div class="form-group">
+        <label for="obs-contributor">
+          <span data-i18n="contributor">Contributor name</span>
+          <span class="required">*</span>
+        </label>
+        <input type="text" id="obs-contributor" name="contributor_name"
+               minlength="2" maxlength="100" required />
+        <span class="field-error" id="err-contributor_name"></span>
+      </div>
+
+      <!-- Date -->
+      <div class="form-group">
+        <label for="obs-date">
+          <span data-i18n="obsDate">Observation date</span>
+          <span class="required">*</span>
+        </label>
+        <input type="date" id="obs-date" name="observation_date" required />
+        <span class="field-error" id="err-observation_date"></span>
+      </div>
+
+      <!-- Soil texture -->
+      <div class="form-group">
+        <label for="obs-texture">
+          <span data-i18n="soilTexture">Soil texture</span>
+          <span class="required">*</span>
+        </label>
+        <select id="obs-texture" name="soil_texture" required>
+          <option value="" data-i18n="choose">-- Choose --</option>
+        </select>
+        <span class="field-error" id="err-soil_texture"></span>
+      </div>
+
+      <!-- Water status -->
+      <div class="form-group">
+        <label for="obs-water">
+          <span data-i18n="waterStatus">Water status</span>
+          <span class="required">*</span>
+        </label>
+        <select id="obs-water" name="water_status" required>
+          <option value="" data-i18n="choose">-- Choose --</option>
+        </select>
+        <span class="field-error" id="err-water_status"></span>
+      </div>
+
+      <!-- Salinity -->
+      <div class="form-group">
+        <label for="obs-salinity">
+          <span data-i18n="salinity">Apparent salinity</span>
+          <span class="required">*</span>
+        </label>
+        <select id="obs-salinity" name="salinity" required>
+          <option value="" data-i18n="choose">-- Choose --</option>
+        </select>
+        <span class="field-error" id="err-salinity"></span>
+      </div>
+
+      <!-- Erosion -->
+      <div class="form-group">
+        <label for="obs-erosion">
+          <span data-i18n="erosion">Observed erosion</span>
+          <span class="required">*</span>
+        </label>
+        <select id="obs-erosion" name="erosion" required>
+          <option value="" data-i18n="choose">-- Choose --</option>
+        </select>
+        <span class="field-error" id="err-erosion"></span>
+      </div>
+
+      <!-- Current crop -->
+      <div class="form-group">
+        <label for="obs-culture">
+          <span data-i18n="currentCrop">Current crop</span>
+          <span class="required">*</span>
+        </label>
+        <select id="obs-culture" name="culture" required>
+          <option value="" data-i18n="choose">-- Choose --</option>
+        </select>
+        <span class="field-error" id="err-culture"></span>
+      </div>
+
+      <!-- Irrigation mode -->
+      <div class="form-group">
+        <label for="obs-irrigation">
+          <span data-i18n="irrigationMode">Irrigation mode</span>
+          <span class="required">*</span>
+        </label>
+        <select id="obs-irrigation" name="irrigation_mode" required>
+          <option value="" data-i18n="choose">-- Choose --</option>
+        </select>
+        <span class="field-error" id="err-irrigation_mode"></span>
+      </div>
+
+      <!-- Optional measurements -->
+      <fieldset class="optional-fieldset">
+        <legend data-i18n="optMeasurements">Optional measurements</legend>
+
+        <div class="form-group form-group-inline">
+          <label for="obs-ph">pH (0-14)</label>
+          <input type="number" id="obs-ph" name="ph"
+                 min="0" max="14" step="0.1" />
+          <span class="field-error" id="err-ph"></span>
+        </div>
+
+        <div class="form-group form-group-inline">
+          <label for="obs-ec">EC (dS/m)</label>
+          <input type="number" id="obs-ec" name="ec_dsm"
+                 min="0" step="0.01" />
+          <span class="field-error" id="err-ec_dsm"></span>
+        </div>
+
+        <div class="form-group form-group-inline">
+          <label for="obs-om">Organic matter (%)</label>
+          <input type="number" id="obs-om" name="organic_matter_pct"
+                 min="0" max="100" step="0.1" />
+          <span class="field-error" id="err-organic_matter_pct"></span>
+        </div>
+      </fieldset>
+
+      <!-- Remark -->
+      <div class="form-group">
+        <label for="obs-remark" data-i18n="remark">Remark</label>
+        <textarea id="obs-remark" name="remark" rows="3" maxlength="1000"></textarea>
+        <span class="field-error" id="err-remark"></span>
+      </div>
+
+      <!-- Actions -->
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary" data-i18n="save">Save</button>
+        <button type="button" id="btn-cancel-obs" class="btn btn-secondary"
+                data-i18n="cancel">Cancel</button>
+      </div>
+
+    </form>
+  </div>
+</div><!-- #obs-modal -->
+
+<!-- ================================================================
+     Add-site panel
+     ================================================================ -->
+<div id="add-site-panel" class="add-site-panel" hidden>
+  <h3 data-i18n="newSiteTitle">New observation site</h3>
+  <form id="add-site-form" novalidate>
+
+    <div class="form-group">
+      <label for="site-name">
+        <span data-i18n="siteName">Site name</span>
+        <span class="required">*</span>
+      </label>
+      <input type="text" id="site-name" name="name"
+             minlength="3" maxlength="100" required />
+      <span class="field-error" id="err-site-name"></span>
+    </div>
+
+    <div class="form-group">
+      <label for="site-culture">
+        <span data-i18n="culture">Crop</span>
+        <span class="required">*</span>
+      </label>
+      <select id="site-culture" name="culture" required>
+        <option value="" data-i18n="choose">-- Choose --</option>
+      </select>
+      <span class="field-error" id="err-site-culture"></span>
+    </div>
+
+    <div class="form-group">
+      <label for="site-soil-type">
+        <span data-i18n="soilType">Soil type</span>
+        <span class="required">*</span>
+      </label>
+      <select id="site-soil-type" name="soil_type" required>
+        <option value="" data-i18n="choose">-- Choose --</option>
+      </select>
+      <span class="field-error" id="err-site-soil_type"></span>
+    </div>
+
+    <div class="form-group form-group-inline">
+      <label for="site-lat" data-i18n="latitude">Latitude</label>
+      <input type="text" id="site-lat" name="latitude" readonly />
+    </div>
+    <div class="form-group form-group-inline">
+      <label for="site-lon" data-i18n="longitude">Longitude</label>
+      <input type="text" id="site-lon" name="longitude" readonly />
+    </div>
+    <span class="field-error" id="err-site-coords"></span>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary" data-i18n="save">Save</button>
+      <button type="button" id="btn-cancel-site" class="btn btn-secondary"
+              data-i18n="cancel">Cancel</button>
+    </div>
+
+  </form>
+</div><!-- #add-site-panel -->
+
+<!-- Toast -->
+<div id="toast" class="toast" hidden role="status" aria-live="polite"></div>
+
+<!-- Scripts: translations first, then map, then forms -->
+<script src="/static/js/map.js"></script>
+<script src="/static/js/forms.js"></script>
+
+</body>
+</html>

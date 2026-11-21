@@ -1,0 +1,430 @@
+{% extends "base.html" %}
+
+{% block title %}SoilWatch — Turlock, California{% endblock %}
+
+{% block head %}
+<style>
+  /* ---- Hero layout ---- */
+  .hero {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 0;
+    min-height: 480px;
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* Live map preview — left column */
+  #map-preview {
+    min-height: 480px;
+    position: relative;
+    z-index: 0;
+    overflow: hidden;
+    background: #e8e0d4;
+  }
+
+  /* The iframe fills the container and is non-interactive */
+  #map-preview iframe {
+    width: 100%;
+    height: 100%;
+    min-height: 480px;
+    border: none;
+    display: block;
+    pointer-events: none;
+  }
+
+  /* Stats + CTA panel — right column */
+  .hero-panel {
+    padding: var(--sp-10) var(--sp-8);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: var(--sp-6);
+    background: var(--silt);
+    border-left: 1px solid var(--border);
+  }
+
+  .hero-panel h1 {
+    font-size: 1.9rem;
+    color: var(--soil-dark);
+    line-height: 1.15;
+  }
+
+  .hero-panel p {
+    font-size: .95rem;
+    color: var(--muted);
+  }
+
+  /* Stat rows */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--sp-3);
+  }
+
+  .stat-item {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: var(--sp-4);
+    text-align: center;
+  }
+
+  .stat-item .stat-number {
+    font-family: var(--font-display);
+    font-size: 1.9rem;
+    color: var(--water);
+    display: block;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+
+  .stat-item .stat-label {
+    font-size: .78rem;
+    color: var(--muted);
+    margin-top: var(--sp-1);
+    display: block;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    font-weight: 600;
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: var(--sp-3);
+    flex-wrap: wrap;
+  }
+
+  /* ---- How it works ---- */
+  .how-section {
+    padding: var(--sp-16) 0;
+  }
+
+  .how-section h2 {
+    text-align: center;
+    margin-bottom: var(--sp-10);
+  }
+
+  .steps {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0;
+    position: relative;
+    max-width: 860px;
+    margin: 0 auto;
+  }
+
+  /* Vertical rule connecting the steps */
+  .steps::before {
+    content: '';
+    position: absolute;
+    left: calc(50% - 1px);
+    top: 0; bottom: 0;
+    display: none; /* only on mobile stacked layout */
+  }
+
+  /* Horizontal connector line between steps */
+  .step + .step::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 28px;
+    width: 100%;
+    height: 1px;
+    background: var(--border);
+    z-index: 0;
+  }
+
+  .step {
+    padding: var(--sp-6) var(--sp-8);
+    position: relative;
+    text-align: center;
+  }
+
+  .step-number {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--water);
+    color: var(--white);
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto var(--sp-4);
+    position: relative;
+    z-index: 1;
+    box-shadow: var(--shadow);
+  }
+
+  .step h3 {
+    font-size: 1.1rem;
+    margin-bottom: var(--sp-2);
+    color: var(--soil-dark);
+  }
+
+  .step p {
+    font-size: .875rem;
+    color: var(--muted);
+  }
+
+  /* Horizontal rule between steps (desktop) */
+  .steps-connector {
+    max-width: 860px;
+    margin: -24px auto 0;
+    padding: 0 var(--sp-8);
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    pointer-events: none;
+  }
+
+  .connector-line {
+    height: 1px;
+    background: var(--border);
+    margin-top: 24px; /* align with centre of step numbers */
+  }
+
+  /* ---- Responsive ---- */
+  @media (max-width: 860px) {
+    .hero {
+      grid-template-columns: 1fr;
+    }
+    #map-preview { min-height: 280px; }
+    .steps {
+      grid-template-columns: 1fr;
+      max-width: 440px;
+    }
+    .step { text-align: left; display: flex; gap: var(--sp-4); align-items: flex-start; }
+    .step-number { flex-shrink: 0; margin: 0; }
+    .steps-connector { display: none; }
+    .step + .step::before { display: none; }
+    /* Vertical rule for mobile */
+    .steps::before {
+      display: block;
+      left: 24px;
+      width: 1px;
+      background: var(--border);
+      top: 48px;
+      bottom: 48px;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ================================================================
+     Hero: live map preview (left) + stats panel (right)
+     ================================================================ -->
+<section class="hero" aria-label="Platform overview">
+
+  <!-- Non-interactive Leaflet map showing the study area -->
+  <div id="map-preview" aria-hidden="true"></div>
+
+  <!-- Stats + CTA -->
+  <div class="hero-panel">
+    <div>
+      <h1 data-i18n="heroTitle">Soil Observation<br>Platform</h1>
+      <p data-i18n="heroSubtitle">
+        A participatory platform for monitoring soils in the
+        Turlock irrigated perimeter, California.
+      </p>
+    </div>
+
+    <!-- Live counts passed from Flask -->
+    <div class="stat-grid">
+      <div class="stat-item">
+        <span class="stat-number">{{ stats.zones }}</span>
+        <span class="stat-label" data-i18n="statZones">Soil units</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number">{{ stats.sites }}</span>
+        <span class="stat-label" data-i18n="statSites">Sites</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number">{{ stats.observations }}</span>
+        <span class="stat-label" data-i18n="statObs">Observations</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number">{{ stats.contributors }}</span>
+        <span class="stat-label" data-i18n="statContrib">Contributors</span>
+      </div>
+    </div>
+
+    <div class="hero-actions">
+      <a href="/carte" class="btn btn-primary btn-lg" data-i18n="heroOpenMap">
+        Open the map &rarr;
+      </a>
+      <a href="/register" class="btn btn-secondary btn-lg" data-i18n="heroRegister">
+        Sign up
+      </a>
+    </div>
+  </div>
+
+</section>
+
+<!-- ================================================================
+     How it works — 3-step explainer
+     ================================================================ -->
+<section class="how-section">
+  <div class="container">
+    <h2 data-i18n="howTitle">How it works</h2>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-number" aria-hidden="true">1</div>
+        <div>
+          <h3 data-i18n="step1Title">Explore</h3>
+          <p data-i18n="step1Desc">
+            Browse the interactive map showing real USDA SSURGO soil units
+            and observation sites across the Turlock perimeter.
+          </p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number" aria-hidden="true">2</div>
+        <div>
+          <h3 data-i18n="step2Title">Observe</h3>
+          <p data-i18n="step2Desc">
+            Visit a site, record salinity, moisture and erosion conditions,
+            and add optional lab measurements.
+          </p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number" aria-hidden="true">3</div>
+        <div>
+          <h3 data-i18n="step3Title">Share</h3>
+          <p data-i18n="step3Desc">
+            Your observations are instantly visible to other farmers and
+            technicians, building a shared picture of soil health over time.
+          </p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+"use strict";
+
+// ---- Non-interactive map preview ----------------------------------------
+// Uses an <iframe> embed from OpenStreetMap — no API key, no tracking prevention issues.
+// The iframe is injected here so the fallback text shows if JS is disabled.
+(function() {
+  var container = document.getElementById("map-preview");
+  if (!container) { return; }
+  // OpenStreetMap embed URL centred on Turlock bbox
+  var bbox = "-121.05,37.32,-120.70,37.60";
+  var lat  = {{ config.MAP_CENTER_LAT }};
+  var lon  = {{ config.MAP_CENTER_LON }};
+  var zoom = {{ config.MAP_ZOOM }};
+  var iframe = document.createElement("iframe");
+  iframe.setAttribute("src",
+    "https://www.openstreetmap.org/export/embed.html"
+    + "?bbox=" + bbox
+    + "&layer=mapnik"
+    + "&marker=" + lat + "," + lon
+  );
+  iframe.setAttribute("width",  "100%");
+  iframe.setAttribute("height", "100%");
+  iframe.setAttribute("frameborder", "0");
+  iframe.setAttribute("scrolling", "no");
+  iframe.setAttribute("marginheight", "0");
+  iframe.setAttribute("marginwidth",  "0");
+  iframe.setAttribute("loading", "lazy");
+  iframe.style.display = "block";
+  iframe.style.border  = "none";
+  container.appendChild(iframe);
+})();
+
+// ---- i18n strings for this page -----------------------------------------
+// Language is set server-side (cookie) so text defaults are already correct.
+// JS translations handle only dynamic elements added after page load.
+var PAGE_STRINGS = {
+  en: {
+    heroTitle:    "Soil Observation\nPlatform",
+    heroSubtitle: "A participatory platform for monitoring soils in the Turlock irrigated perimeter, California.",
+    heroOpenMap:  "Open the map →",
+    heroRegister: "Sign up",
+    statZones:    "Soil units",
+    statSites:    "Sites",
+    statObs:      "Observations",
+    statContrib:  "Contributors",
+    howTitle:     "How it works",
+    step1Title:   "Explore",
+    step1Desc:    "Browse the interactive map showing real USDA SSURGO soil units and observation sites.",
+    step2Title:   "Observe",
+    step2Desc:    "Visit a site, record salinity, moisture and erosion conditions, and add optional lab measurements.",
+    step3Title:   "Share",
+    step3Desc:    "Your observations are instantly visible to other farmers and technicians.",
+    navHome:      "Home", navMap: "Map", navTables: "Tables",
+    navLogin:     "Login", navLogout: "Sign out",
+    footerCopy:   "© 2026 SoilWatch",
+    footerData:   "Soil data: USDA SSURGO (real) · Observations: simulated",
+  },
+  fr: {
+    heroTitle:    "Plateforme d'observation\ndes sols",
+    heroSubtitle: "Une plateforme participative pour le suivi des sols du périmètre irrigué de Turlock, Californie.",
+    heroOpenMap:  "Ouvrir la carte →",
+    heroRegister: "S'inscrire",
+    statZones:    "Unités de sol",
+    statSites:    "Sites",
+    statObs:      "Observations",
+    statContrib:  "Contributeurs",
+    howTitle:     "Comment ça marche",
+    step1Title:   "Explorer",
+    step1Desc:    "Parcourez la carte interactive avec les unités de sol SSURGO réelles et les sites d'observation.",
+    step2Title:   "Observer",
+    step2Desc:    "Visitez un site, enregistrez la salinité, l'humidité et l'érosion, ajoutez des mesures de laboratoire.",
+    step3Title:   "Partager",
+    step3Desc:    "Vos observations sont immédiatement visibles par les autres agriculteurs et techniciens.",
+    navHome:      "Accueil", navMap: "Carte", navTables: "Tables",
+    navLogin:     "Connexion", navLogout: "Déconnexion",
+    footerCopy:   "© 2026 SoilWatch",
+    footerData:   "Données sols : USDA SSURGO (réelles) · Observations : simulées",
+  },
+  ar: {
+    heroTitle:    "منصة مراقبة التربة",
+    heroSubtitle: "منصة تشاركية لرصد التربة في محيط الري بتورلوك، كاليفورنيا.",
+    heroOpenMap:  "فتح الخريطة ←",
+    heroRegister: "إنشاء حساب",
+    statZones:    "وحدات التربة",
+    statSites:    "المواقع",
+    statObs:      "الملاحظات",
+    statContrib:  "المساهمون",
+    howTitle:     "كيف يعمل النظام",
+    step1Title:   "استكشف",
+    step1Desc:    "تصفح الخريطة التفاعلية التي تعرض وحدات التربة الحقيقية من SSURGO ومواقع المراقبة.",
+    step2Title:   "راقب",
+    step2Desc:    "قم بزيارة موقع وتسجيل الملوحة والرطوبة والتعرية مع إضافة قياسات المختبر الاختيارية.",
+    step3Title:   "شارك",
+    step3Desc:    "ملاحظاتك مرئية فوراً للمزارعين والتقنيين الآخرين.",
+    navHome:      "الرئيسية", navMap: "الخريطة", navTables: "الجداول",
+    navLogin:     "دخول", navLogout: "خروج",
+    footerCopy:   "© 2026 SoilWatch",
+    footerData:   "بيانات التربة: USDA SSURGO (حقيقية) · الملاحظات: محاكاة",
+  },
+};
+
+// Apply translations to data-i18n elements
+(function() {
+  var lang = document.documentElement.lang || "en";
+  var strings = PAGE_STRINGS[lang] || PAGE_STRINGS["en"];
+
+  document.querySelectorAll("[data-i18n]").forEach(function(el) {
+    var key = el.getAttribute("data-i18n");
+    if (strings[key] !== undefined) {
+      el.textContent = strings[key];
+    }
+  });
+})();
+</script>
+{% endblock %}
